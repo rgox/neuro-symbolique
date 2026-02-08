@@ -97,6 +97,27 @@ class ObjectLayer(Layer):
     def __init__(self, scene_graph: SceneGraph):
         super().__init__(scene_graph, LayerType.L1)
 
+    def create_node(
+        self,
+        class_name: str,
+        position: Union[np.ndarray, List[float]],
+        bbox_min: Optional[Union[np.ndarray, List[float]]] = None,
+        bbox_max: Optional[Union[np.ndarray, List[float]]] = None,
+        confidence: float = 1.0,
+        embedding_key: Optional[str] = None,
+        **attributes,
+    ) -> Node:
+        """Alias required by the Layer interface."""
+        return self.create_object(
+            class_name=class_name,
+            position=position,
+            bbox_min=bbox_min,
+            bbox_max=bbox_max,
+            confidence=confidence,
+            embedding_key=embedding_key,
+            **attributes,
+        )
+
     def create_object(
         self,
         class_name: str,
@@ -273,6 +294,25 @@ class RoomLayer(Layer):
 
     def __init__(self, scene_graph: SceneGraph):
         super().__init__(scene_graph, LayerType.L2)
+
+    def create_node(
+        self,
+        name: str,
+        center: Union[np.ndarray, List[float]],
+        bounds_min: Optional[Union[np.ndarray, List[float]]] = None,
+        bounds_max: Optional[Union[np.ndarray, List[float]]] = None,
+        room_type: str = "indoor",
+        **attributes,
+    ) -> Node:
+        """Alias required by the Layer interface."""
+        return self.create_room(
+            name=name,
+            center=center,
+            bounds_min=bounds_min,
+            bounds_max=bounds_max,
+            room_type=room_type,
+            **attributes,
+        )
 
     def create_room(
         self,

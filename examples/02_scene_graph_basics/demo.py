@@ -14,6 +14,7 @@ The demo creates a simple kitchen scene with:
 - Spatial relations between them
 """
 
+from pathlib import Path
 import numpy as np
 from nesy import NeSyPlatform
 from nesy.world_model import (
@@ -36,7 +37,10 @@ def main():
 
     # Initialize platform
     print("\n1. Initializing NeSy Platform...")
-    platform = NeSyPlatform.from_config("../../configs/minimal.yaml")
+    # Resolve config relative to repository root, regardless of cwd
+    repo_root = Path(__file__).resolve().parents[2]
+    config_path = repo_root / "configs" / "minimal.yaml"
+    platform = NeSyPlatform.from_config(config_path)
     print(f"   ✓ Platform initialized")
     print(f"   ✓ UMA available for embeddings")
 

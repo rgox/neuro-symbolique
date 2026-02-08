@@ -24,6 +24,7 @@ class EventType(Enum):
     REASONING = "reasoning"
     PLANNING = "planning"
     GROUNDING = "grounding"  # Neural-symbolic grounding events
+    GRAPH = "graph"  # Scene/knowledge graph events
     MEMORY = "memory"
     DEVICE = "device"  # NPU/SPU/CPU events
     ERROR = "error"
