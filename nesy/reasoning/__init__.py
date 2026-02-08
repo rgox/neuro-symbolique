@@ -1,14 +1,14 @@
 """
 Reasoning Module - Symbolic and Neural-Symbolic Reasoning.
 
-This module will contain:
+This module contains:
 - VSA (Vector-Symbolic Architectures): Hyperdimensional computing
-- Logic engines: Scallop, differentiable logic
-- Inference: Forward/backward reasoning
-- Planning: Goal-directed reasoning
+- Logic: Differentiable logic programming with Scallop
+- (Future) Planning: Goal-directed reasoning
 
-Currently implemented:
+Components:
 - vsa: Vector-Symbolic Architectures for neural-symbolic grounding
+- logic: Differentiable Datalog for symbolic inference
 """
 
 from nesy.reasoning.vsa import (
@@ -18,9 +18,18 @@ from nesy.reasoning.vsa import (
     GroundingCache
 )
 
+from nesy.reasoning.logic import (
+    ScallopContext,
+    ReasoningEngine,
+    SCALLOP_AVAILABLE
+)
+
 __all__ = [
     'HyperVector',
     'VSACodebook',
     'NeuralGrounding',
     'GroundingCache',
+    'ScallopContext',
+    'ReasoningEngine',
+    'SCALLOP_AVAILABLE',
 ]
