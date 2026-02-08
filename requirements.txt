@@ -1,0 +1,48 @@
+# Core dependencies
+numpy>=1.24,<2.0
+pyyaml>=6.0
+typing-extensions>=4.5
+
+# Neural Processing (NPU)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Symbolic/Logic (SPU)
+# Note: scallop-lang may need manual installation
+# See: https://scallop-lang.github.io/
+rdflib>=6.3.0
+owlready2>=0.45
+
+# Graph structures
+networkx>=3.1
+
+# Spatial & Geometry
+scipy>=1.11.0
+
+# Visualization
+rerun-sdk>=0.15.0
+matplotlib>=3.7.0
+
+# Development tools
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+mypy>=1.5.0
+ruff>=0.1.0
+
+# Optional: For documentation
+# sphinx>=7.0.0
+# sphinx-rtd-theme>=1.3.0
+
+# Optional: Post-MVP dependencies (commented out for now)
+# PyTorch Geometric for GNN
+# torch-geometric>=2.4.0
+
+# ROS2 (install separately via apt/source)
+# rclpy (install with ROS2)
+
+# Motion planning
+# ompl>=1.5.0
+
+# SMT solver for verification
+# z3-solver>=4.12.0

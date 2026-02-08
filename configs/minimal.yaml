@@ -1,0 +1,99 @@
+# Minimal Configuration for NeSy Platform
+# This is the simplest configuration to get started with the platform
+
+# Hardware Abstraction Layer
+hal:
+  npu:
+    backend: pytorch
+    device: cpu  # Change to 'cuda' if GPU available
+    precision: float32
+
+  spu:
+    mode: simple  # Simple forward chaining for MVP
+    graph_cache_size: 1000
+    max_depth: 10
+
+  cpu:
+    num_workers: 4
+
+  memory:
+    pool_enabled: true
+    max_memory_mb: 2048
+
+# World Model
+world_model:
+  scene_graph:
+    layers: [L1, L2, L3]  # MVP uses 3 layers only
+    update_rate_hz: 10
+    spatial_index: octree
+
+  knowledge_graph:
+    backend: rdflib
+    persist: false
+    ontology_path: null  # No ontology for minimal setup
+
+  vsa:
+    dim: 1024  # 1024-dimensional hypervectors
+    method: hrr  # Holographic Reduced Representations
+    seed: 42
+
+  temporal:
+    enabled: false  # Disabled for MVP
+
+# Reasoning
+reasoning:
+  logic:
+    engine: scallop
+    provenance: difftopkproofs
+    k: 3  # Top-3 proofs for debugging
+
+  planning:
+    enabled: false  # Post-MVP feature
+
+  llm:
+    enabled: false  # Post-MVP feature
+
+  verification:
+    enabled: false  # Post-MVP feature
+
+# Middleware (all disabled for minimal setup)
+middleware:
+  semantic_pubsub:
+    enabled: false
+
+  ros2:
+    enabled: false
+
+  mcp:
+    enabled: false
+
+# Perception
+perception:
+  object_detection:
+    model: yolov8n  # Nano version for speed
+    confidence_threshold: 0.5
+    nms_threshold: 0.4
+
+  feature_extraction:
+    model: clip  # CLIP for visual-semantic embeddings
+    embedding_dim: 512
+
+# Development Tools
+tools:
+  debugger:
+    enabled: true
+    trace_file: logs/trace.json
+    log_level: info
+
+  visualization:
+    backend: rerun
+    port: 9876
+    auto_open: false  # Don't auto-open for headless systems
+
+  simulator:
+    enabled: false
+
+# Global Settings
+log_level: info  # debug | info | warning | error
+seed: 42
+profile: false  # Enable performance profiling
