@@ -75,7 +75,8 @@ class Node:
         node_type: Type of node (OBJECT, ROOM, etc.)
         position: 3D position (x, y, z) in world coordinates
         attributes: Semantic attributes (color, class, etc.)
-        embedding_key: Optional key to embedding in UMA
+        embedding_key: Optional key to neural embedding in UMA
+        vsa_embedding_key: Optional key to VSA hypervector in UMA
         bbox: Optional bounding box (min_xyz, max_xyz)
         confidence: Detection/existence confidence [0, 1]
         timestamp: Creation/update timestamp
@@ -86,6 +87,7 @@ class Node:
     position: np.ndarray = field(default_factory=lambda: np.zeros(3))
     attributes: Dict[str, Any] = field(default_factory=dict)
     embedding_key: Optional[str] = None
+    vsa_embedding_key: Optional[str] = None  # NEW: VSA hypervector UMA key
     bbox: Optional[Tuple[np.ndarray, np.ndarray]] = None
     confidence: float = 1.0
     timestamp: float = field(default_factory=time.time)
@@ -107,6 +109,7 @@ class Node:
             "position": self.position.tolist(),
             "attributes": self.attributes,
             "embedding_key": self.embedding_key,
+            "vsa_embedding_key": self.vsa_embedding_key,
             "bbox": [self.bbox[0].tolist(), self.bbox[1].tolist()] if self.bbox else None,
             "confidence": self.confidence,
             "timestamp": self.timestamp,
