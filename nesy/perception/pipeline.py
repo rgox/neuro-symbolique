@@ -236,9 +236,11 @@ class PerceptionPipeline:
                         self.logger.warning(f"Failed to store embedding: {e}")
             
             # Estimate 3D position from 2D detection
+            if camera_pose is None:
+                camera_pose = np.array([0, 0, 1.5])
             position_3d = self._estimate_3d_position(
                 det,
-                camera_pose=camera_pose or np.array([0, 0, 1.5]),
+                camera_pose=camera_pose,
                 image_size=det.image_size,
             )
             
