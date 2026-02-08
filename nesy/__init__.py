@@ -76,8 +76,11 @@ class NeSyPlatform:
         device = self.config.hal.npu.get("device", "cpu")
         self.uma = UMA(device=device)
 
-        # Initialize subsystems (placeholders for now)
-        self.hal = None  # Will be initialized in HAL implementation
+        # Initialize HAL (Hardware Abstraction Layer)
+        self.logger.info("Initializing Hardware Abstraction Layer")
+        self.hal = self._initialize_hal()
+
+        # Initialize subsystems (placeholders for post-HAL implementation)
         self.world_model = None  # Will be initialized in World Model implementation
         self.reasoning = None  # Will be initialized in Reasoning implementation
         self.middleware = None  # Will be initialized in Middleware implementation
@@ -85,6 +88,55 @@ class NeSyPlatform:
         self.tools = None  # Will be initialized in Tools implementation
 
         self.logger.info("NeSy platform initialized successfully")
+
+    def _initialize_hal(self):
+        """Initialize Hardware Abstraction Layer with NPU, SPU, CPU."""
+        from nesy.hal import DevicePool, NPU, SPU, CPUOrchestrator
+
+        # Create device pool
+        device_pool = DevicePool(self.uma, self.logger)
+
+        # Initialize NPU (Neural Processing Unit)
+        npu_config = self.config.hal.npu
+        npu = NPU(
+            uma=self.uma,
+            backend=npu_config.get("backend", "pytorch"),
+            device=npu_config.get("device", "cpu"),
+            precision=npu_config.get("precision", "float32"),
+            logger=self.logger,
+        )
+        device_pool.register_device(npu)
+
+        # Initialize SPU (Symbolic Processing Unit)
+        spu_config = self.config.hal.spu
+        spu = SPU(
+            uma=self.uma,
+            mode=spu_config.get("mode", "simple"),
+            graph_cache_size=spu_config.get("graph_cache_size", 1000),
+            max_depth=spu_config.get("max_depth", 10),
+            logger=self.logger,
+        )
+        device_pool.register_device(spu)
+
+        # Initialize CPU Orchestrator
+        cpu_config = self.config.hal.cpu
+        cpu = CPUOrchestrator(
+            uma=self.uma,
+            device_pool=device_pool,
+            num_workers=cpu_config.get("num_workers", 4),
+            logger=self.logger,
+        )
+        device_pool.register_device(cpu)
+
+        # Return HAL object with device references
+        class HAL:
+            def __init__(self, npu, spu, cpu, device_pool):
+                self.npu = npu
+                self.spu = spu
+                self.cpu = cpu
+                self.device_pool = device_pool
+
+        return HAL(npu, spu, cpu, device_pool)
 
     @classmethod
     def from_config(cls, config_path: Union[str, Path]) -> "NeSyPlatform":
