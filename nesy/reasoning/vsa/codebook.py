@@ -250,14 +250,17 @@ class VSACodebook:
                 'z': HyperVector.random(self.dim, self.hv_type, seed=self.base_seed + 3),
             }
         
-        # Encode each coordinate using permutation
-        # Position is encoded as: x*basis_x ⊕ y*basis_y ⊕ z*basis_z
+        # Encode each coordinate using permutation-based approach
+        # Use integer permutation shifts based on quantized coordinates
+        shift_x = int(x * 10) % 100  # Quantize and wrap
+        shift_y = int(y * 10) % 100
+        shift_z = int(z * 10) % 100
+        
+        # Position encoded as: permute(x_basis, x) ⊕ permute(y_basis, y) ⊕ permute(z_basis, z)
         hv_pos = (
-            self._position_basis['x'] * float(x)
-        ).bundle(
-            self._position_basis['y'] * float(y)
-        ).bundle(
-            self._position_basis['z'] * float(z)
+            self._position_basis['x'].permute(shift_x)
+            .bundle(self._position_basis['y'].permute(shift_y))
+            .bundle(self._position_basis['z'].permute(shift_z))
         )
         
         return hv_pos
