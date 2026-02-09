@@ -40,6 +40,13 @@ from nesy.reasoning.vsa.grounding import (
     GroundingCache
 )
 
+from nesy.reasoning.vsa.symbolic import (
+    VSAComposer,
+    AnalogyEngine,
+    PatternMatcher,
+    RoleFillerBinder,
+)
+
 __all__ = [
     'HyperVector',
     'HyperVectorType',
@@ -48,4 +55,8 @@ __all__ = [
     'VSACodebook',
     'NeuralGrounding',
     'GroundingCache',
+    'VSAComposer',
+    'AnalogyEngine',
+    'PatternMatcher',
+    'RoleFillerBinder',
 ]
