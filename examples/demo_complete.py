@@ -104,7 +104,7 @@ def main():
     # Query 3: What's on the table?
     print("   Q: What's on the table?")
     result = pipeline.query("What's on the table?")
-    print(f "   A: {result}")
+    print(f"   A: {result}")
     print()
     
     # Query 4: Is cup in kitchen? (inference)

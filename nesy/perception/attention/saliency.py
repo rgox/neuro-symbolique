@@ -22,7 +22,13 @@ Example:
 from enum import Enum
 from typing import List, Tuple, Optional
 import numpy as np
-import cv2
+
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+    cv2 = None  # type: ignore
 
 
 class SaliencyMethod(Enum):
@@ -58,6 +64,12 @@ class SaliencyDetector:
         threshold: int = 128,
     ):
         """Initialize saliency detector."""
+        if not HAS_CV2:
+            raise ImportError(
+                "OpenCV (cv2) is required for saliency detection. "
+                "Install with: pip install opencv-python"
+            )
+        
         self.method = method
         self.gaussian_blur = gaussian_blur
         self.threshold = threshold

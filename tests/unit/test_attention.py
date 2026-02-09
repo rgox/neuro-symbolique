@@ -7,13 +7,19 @@ Tests saliency detection, ROI proposals, and attention mechanisms.
 import pytest
 import numpy as np
 
-from nesy.perception.attention import (
-    SaliencyDetector,
-    SaliencyMethod,
-    AttentionMechanism,
-    ROI,
-    ROIProposal,
-)
+# Check if cv2 available
+try:
+    from nesy.perception.attention import (
+        SaliencyDetector,
+        SaliencyMethod,
+        AttentionMechanism,
+        ROI,
+        ROIProposal,
+    )
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+    pytestmark = pytest.mark.skip(reason="OpenCV (cv2) not installed")
 
 
 class TestSaliencyDetector:
