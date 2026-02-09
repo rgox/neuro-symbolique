@@ -21,7 +21,6 @@ from nesy.reasoning.vsa import (
 from nesy.reasoning.logic import (
     ScallopContext,
     ReasoningEngine,
-    SCALLOP_AVAILABLE
 )
 
 __all__ = [
@@ -31,5 +30,4 @@ __all__ = [
     'GroundingCache',
     'ScallopContext',
     'ReasoningEngine',
-    'SCALLOP_AVAILABLE',
 ]

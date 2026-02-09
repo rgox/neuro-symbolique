@@ -232,9 +232,10 @@ class TestAttentionMechanism:
             ROI(bbox=(200, 200, 100, 100), score=0.8),  # No overlap
         ]
         
-        filtered = attention._nms(rois, iou_threshold=0.3)
-        
+        filtered = attention._nms(rois, iou_threshold=0.1)
+
         # Should keep first (highest score) and third (no overlap)
+        # IOU between first and second is ~0.14, so with threshold 0.1, second is suppressed
         assert len(filtered) == 2
         assert filtered[0].score == 0.9
         assert filtered[1].score == 0.8

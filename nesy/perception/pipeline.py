@@ -27,6 +27,7 @@ Example:
 
 from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
+import torch
 from dataclasses import dataclass
 import time
 
@@ -228,8 +229,12 @@ class PerceptionPipeline:
                     )
                     # Copy features to UMA buffer
                     buffer = self.uma.get(embedding_key)
-                    buffer.data[:] = feature_vec.features
-                    
+                    # Convert numpy array to torch tensor if needed
+                    if isinstance(feature_vec.features, np.ndarray):
+                        buffer.data[:] = torch.from_numpy(feature_vec.features)
+                    else:
+                        buffer.data[:] = feature_vec.features
+
                     embeddings_stored.append(embedding_key)
                 except Exception as e:
                     if self.logger:

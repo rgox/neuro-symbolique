@@ -173,6 +173,10 @@ class NeSyConfig:
         Args:
             path: Output file path
         """
+        path = Path(path)
+        # Create parent directories if they don't exist
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         config_dict = self.to_dict()
         # Convert enums to strings
         config_dict["log_level"] = self.log_level.value

@@ -136,7 +136,8 @@ def test_codebook_attributes():
     
     # Binding creates dissimilarity - decoded results may not contain originals
     # This is expected VSA behavior (binding ≠ bundling)
-    results = codebook.decode(hv_color_red, top_k=5)
+    # Use negative threshold to allow all similarities (cosine is in [-1, 1])
+    results = codebook.decode(hv_color_red, top_k=5, threshold=-1.0)
     symbols = [r[0] for r in results]
     
     print(f"  Decoded attribute binding: {symbols}")

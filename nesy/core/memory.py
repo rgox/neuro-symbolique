@@ -87,14 +87,19 @@ class UMA:
         >>> symbolic_view = uma.get("object_embeddings")
     """
 
-    def __init__(self, device: str = "cpu"):
+    def __init__(self, device: Union[str, DeviceType] = "cpu"):
         """
         Initialize Unified Memory Architecture.
 
         Args:
             device: Default device for allocations ('cpu', 'cuda', 'cuda:0', etc.)
+                   Can be string or DeviceType enum
         """
-        self.device = device
+        # Normalize device to string
+        if isinstance(device, DeviceType):
+            self.device = device.value
+        else:
+            self.device = device
         self._buffers: Dict[str, MemoryBuffer] = {}
         self._memory_pool: Dict[Tuple[Tuple[int, ...], DataType], list] = {}
 
@@ -155,7 +160,11 @@ class UMA:
     ) -> torch.Tensor:
         """Create a PyTorch tensor with the specified properties."""
         torch_dtype = self._dtype_to_torch(dtype)
-        torch_device = self.device if device == DeviceType.NPU else "cpu"
+        # Convert device to string for PyTorch
+        if device == DeviceType.NPU:
+            torch_device = self.device  # Use configured device (already normalized to string)
+        else:
+            torch_device = "cpu"
         return torch.zeros(shape, dtype=torch_dtype, device=torch_device)
 
     def get(self, key: str) -> Optional[MemoryBuffer]:
@@ -169,6 +178,18 @@ class UMA:
             MemoryBuffer if found, None otherwise
         """
         return self._buffers.get(key)
+
+    def exists(self, key: str) -> bool:
+        """
+        Check if a buffer exists.
+
+        Args:
+            key: Buffer identifier
+
+        Returns:
+            True if buffer exists, False otherwise
+        """
+        return key in self._buffers
 
     def free(self, key: str, return_to_pool: bool = True) -> None:
         """

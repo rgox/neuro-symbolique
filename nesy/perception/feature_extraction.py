@@ -19,7 +19,7 @@ Example:
     >>> uma.allocate("object_001_emb", embedding.shape, DataType.FLOAT32, DeviceType.NPU)
 """
 
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Literal
 import numpy as np
 from dataclasses import dataclass
 from enum import Enum
@@ -50,17 +50,19 @@ class FeatureBackend(Enum):
 class FeatureVector:
     """
     Extracted feature vector with metadata.
-    
+
     Attributes:
         features: Feature vector as numpy array
         dim: Feature dimensionality
         model: Model name used for extraction
         normalized: Whether features are L2-normalized
+        source: Optional source of features ("image", "text", etc.)
     """
     features: np.ndarray
     dim: int
     model: str
     normalized: bool = False
+    source: Optional[str] = None
     
     def normalize(self) -> 'FeatureVector':
         """L2-normalize the feature vector."""
@@ -78,6 +80,7 @@ class FeatureVector:
             dim=self.dim,
             model=self.model,
             normalized=True,
+            source=self.source,
         )
     
     def cosine_similarity(self, other: 'FeatureVector') -> float:
