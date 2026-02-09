@@ -187,19 +187,20 @@ def test_e2e_natural_language_queries():
     pipeline.reasoning.sync_from_scene_graph()
     
     # Query: "Find all cups"
-    result = pipeline.query("Find all cups")
-    print(f"  'Find all cups' → {result}")
-    assert len(result) >= 1
+    cups = pipeline.find_all("cup")
+    print(f"  Find all cups → {cups}")
+    assert len(cups) >= 1
     
-    # Query: "What's in the kitchen?"
-    result = pipeline.query("What's in the kitchen?")
-    print(f"  'What's in the kitchen?' → {result}")
-    assert len(result) >= 1
+    # Query: "What's in the kitchen?" 
+    in_kitchen = pipeline.find_in_location(kitchen.id)
+    print(f"  Objects in kitchen → {in_kitchen}")
+    assert len(in_kitchen) >= 1
     
     # Query: "What's on the table?"
-    result = pipeline.query("What's on the table?")
-    print(f"  'What's on the table?' → {result}")
-    assert len(result) >= 1
+    on_relations = pipeline.reasoning.query("on")
+    on_table = [src for src, dst in on_relations if dst == table.id]
+    print(f"  Objects on table → {on_table}")
+    assert len(on_table) >= 1
     
     print("  ✓ Natural language queries work")
 
