@@ -91,10 +91,6 @@ class NeuralSymbolicPipeline:
         # Core infrastructure
         self.uma = UMA() if use_uma else None
         
-        # Perception components
-        self.detector = ObjectDetector(backend=detector_backend)
-        self.feature_extractor = FeatureExtractor(backend=feature_backend)
-        
         # World model
         self.scene_graph = SceneGraph(uma=self.uma, logger=self.logger)
         
@@ -117,11 +113,11 @@ class NeuralSymbolicPipeline:
         
         # Integrated perception pipeline
         self.perception = PerceptionPipeline(
-            detector=self.detector,
-            feature_extractor=self.feature_extractor,
             scene_graph=self.scene_graph,
             uma=self.uma,
-            logger=self.logger
+            logger=self.logger,
+            detector_backend=detector_backend,
+            feature_backend=feature_backend
         )
         
         self.logger.info("NeuralSymbolicPipeline initialized successfully")
