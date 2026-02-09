@@ -510,9 +510,11 @@ class SceneGraph:
 
         node = self.nodes[node_id]
 
-        # Remove edges
-        del self.edges[node_id]
-        del self.reverse_edges[node_id]
+        # Remove edges (check if exists first)
+        if node_id in self.edges:
+            del self.edges[node_id]
+        if node_id in self.reverse_edges:
+            del self.reverse_edges[node_id]
 
         # Remove node from layer index
         self.layer_nodes[node.layer].discard(node_id)

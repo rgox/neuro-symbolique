@@ -25,8 +25,7 @@ def test_e2e_pipeline_initialization():
     )
     
     # Verify components exist
-    assert pipeline.detector is not None
-    assert pipeline.feature_extractor is not None
+    assert pipeline.perception is not None
     assert pipeline.scene_graph is not None
     assert pipeline.codebook is not None
     assert pipeline.grounding is not None
