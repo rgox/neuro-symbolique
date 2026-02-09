@@ -219,7 +219,7 @@ class PerceptionPipeline:
                         key=embedding_key,
                         shape=(feature_vec.dim,),
                         dtype=DataType.FLOAT32,
-                        device=DeviceType.NPU,
+                        device=self.uma.device,  # Use UMA's actual device (CPU/NPU)
                         metadata={
                             "class": det.class_name,
                             "model": feature_vec.model,

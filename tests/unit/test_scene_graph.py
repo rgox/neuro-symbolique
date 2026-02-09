@@ -389,13 +389,14 @@ class TestOctree:
         octree = Octree(center=[0, 0, 0], size=10.0)
 
         octree.insert("obj1", [0, 0, 0])
-        octree.insert("obj2", [1, 1, 1])
+        octree.insert("obj2", [1, 1, 1])  # Distance = sqrt(3) = 1.73
 
         octree.remove("obj1")
-        results = octree.query_radius(center=[0, 0, 0], radius=1.0)
+        results = octree.query_radius(center=[0, 0, 0], radius=2.0)  # Use radius=2.0 to include obj2
 
         assert len(results) == 1
         assert "obj1" not in results
+        assert "obj2" in results
 
     def test_statistics(self):
         """Test getting octree statistics."""
