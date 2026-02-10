@@ -11,6 +11,13 @@ from nesy.agents.autonomous import (
     Observation,
     Goal,
 )
+from nesy.agents.multi_agent import (
+    MultiAgentCoordinator,
+    AgentRole,
+    AgentMessage,
+    MessageType,
+    SharedKnowledge,
+)
 
 __all__ = [
     "AutonomousAgent",
@@ -18,4 +25,9 @@ __all__ = [
     "AgentState",
     "Observation",
     "Goal",
+    "MultiAgentCoordinator",
+    "AgentRole",
+    "AgentMessage",
+    "MessageType",
+    "SharedKnowledge",
 ]
