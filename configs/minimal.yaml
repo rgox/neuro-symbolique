@@ -5,7 +5,7 @@
 hal:
   npu:
     backend: pytorch
-    device: cpu  # Change to 'cuda' if GPU available
+    device: cuda  # Change to 'cpu' if GPU not available
     precision: float32
 
   spu:
