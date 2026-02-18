@@ -114,13 +114,15 @@ class MiddlewareConfig:
 class PerceptionConfig:
     """Perception configuration."""
     object_detection: Dict[str, Any] = field(default_factory=lambda: {
-        "model": "yolov8",
+        "backend": "mock",
+        "model": "yolov8n",
         "confidence_threshold": 0.5,
         "nms_threshold": 0.4,
     })
     feature_extraction: Dict[str, Any] = field(default_factory=lambda: {
-        "model": "clip",
-        "embedding_dim": 512,
+        "backend": "mock",
+        "model": "ViT-B/32",
+        "feature_dim": 512,
     })
 
 

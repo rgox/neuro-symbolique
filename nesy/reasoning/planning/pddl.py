@@ -66,6 +66,12 @@ class Predicate:
                 self.params == other.params and
                 self.is_negative == other.is_negative)
 
+    def __lt__(self, other) -> bool:
+        """Comparison for sorting."""
+        if not isinstance(other, Predicate):
+            return NotImplemented
+        return (self.name, self.params, self.is_negative) < (other.name, other.params, other.is_negative)
+
 
 @dataclass
 class Action:
@@ -107,6 +113,12 @@ class Action:
     def __str__(self) -> str:
         params_str = ", ".join(self.parameters) if self.parameters else ""
         return f"{self.name}({params_str})"
+
+    def __lt__(self, other) -> bool:
+        """Comparison for sorting/heapq."""
+        if not isinstance(other, Action):
+            return NotImplemented
+        return (self.name, tuple(self.parameters)) < (other.name, tuple(other.parameters))
 
 
 @dataclass
@@ -252,6 +264,59 @@ class PDDLPlanner:
         else:
             raise ValueError(f"Unknown algorithm: {algorithm}")
     
+    def _ground_actions(self, state: Set[Predicate]) -> List[Action]:
+        """
+        Ground parameterized actions with concrete values from state.
+        
+        Generates all possible ground instances of each action template
+        by substituting parameters with values found in the state.
+        
+        Args:
+            state: Current state predicates
+            
+        Returns:
+            List of grounded actions
+        """
+        from itertools import product
+        
+        # Collect all constants from state
+        constants = set()
+        for pred in state:
+            for p in pred.params:
+                constants.add(p)
+        
+        grounded = []
+        for action in self.domain.actions.values():
+            if not action.parameters:
+                grounded.append(action)
+                continue
+            
+            # Try all assignments of constants to parameters
+            for assignment in product(constants, repeat=len(action.parameters)):
+                binding = dict(zip(action.parameters, assignment))
+                
+                # Ground preconditions
+                ground_preconds = []
+                for p in action.preconditions:
+                    params = [binding.get(x, x) for x in p.params]
+                    ground_preconds.append(Predicate(p.name, params, p.is_negative))
+                
+                # Ground effects
+                ground_effects = []
+                for e in action.effects:
+                    params = [binding.get(x, x) for x in e.params]
+                    ground_effects.append(Predicate(e.name, params, e.is_negative))
+                
+                ground_action = Action(
+                    name=action.name,
+                    parameters=list(assignment),
+                    preconditions=ground_preconds,
+                    effects=ground_effects,
+                )
+                grounded.append(ground_action)
+        
+        return grounded
+    
     def _forward_search(
         self,
         problem: PDDLProblem,
@@ -289,8 +354,8 @@ class PDDLPlanner:
                 continue
             visited.add(state_hash)
             
-            # Try all applicable actions
-            for action in self.domain.actions.values():
+            # Try all grounded action instances
+            for action in self._ground_actions(state):
                 if action.is_applicable(state):
                     new_state = action.apply(state)
                     new_plan = plan + [action]
@@ -337,8 +402,8 @@ class PDDLPlanner:
                 continue
             visited.add(state_hash)
             
-            # Try all applicable actions
-            for action in self.domain.actions.values():
+            # Try all grounded action instances
+            for action in self._ground_actions(state):
                 if action.is_applicable(state):
                     new_state = action.apply(state)
                     new_g = g_score + 1  # Uniform cost

@@ -20,6 +20,7 @@ skipif_no_fastapi = pytest.mark.skipif(
 )
 
 
+@skipif_no_fastapi
 class TestAppState:
     """Test application state."""
     

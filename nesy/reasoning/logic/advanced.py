@@ -146,28 +146,59 @@ class RecursiveRules:
     def find_path(self, start_id: str, end_id: str) -> Optional[List[str]]:
         """
         Find path between two nodes.
-        
+
         Args:
             start_id: Start node ID
             end_id: End node ID
-        
+
         Returns:
             List of node IDs forming path, or None if no path
         """
-        # Check if reachable
+        # Check if reachable via logic inference
         results = self.engine.ctx.query("reachable")
-        
+
         reachable = any(
             (src == start_id and dst == end_id)
             for src, dst in results
         )
-        
-        if not reachable:
+
+        if reachable:
+            return [start_id, end_id]
+
+        # Fallback: BFS over scene graph edges when logic engine
+        # cannot perform inference (e.g., mock Scallop context)
+        return self._bfs_path(start_id, end_id)
+
+    def _bfs_path(self, start_id: str, end_id: str) -> Optional[List[str]]:
+        """BFS fallback over scene graph edges."""
+        from collections import deque
+
+        sg = self.engine.scene_graph
+        if start_id not in sg.nodes or end_id not in sg.nodes:
             return None
-        
-        # For now, return simple existence check
-        # Full path reconstruction would need provenance tracking
-        return [start_id, end_id] if reachable else None
+
+        # Build adjacency from scene graph edges
+        adjacency: Dict[str, List[str]] = {}
+        for src_id, edge_list in sg.edges.items():
+            for edge in edge_list:
+                adjacency.setdefault(edge.src, []).append(edge.dst)
+
+        # BFS
+        visited = set()
+        queue = deque([(start_id, [start_id])])
+
+        while queue:
+            node, path = queue.popleft()
+            if node == end_id:
+                return path
+            if node in visited:
+                continue
+            visited.add(node)
+            for neighbor in adjacency.get(node, []):
+                if neighbor not in visited:
+                    queue.append((neighbor, path + [neighbor]))
+
+        return None
     
     def get_transitive_closure(self, relation: str) -> List[Tuple[str, str]]:
         """

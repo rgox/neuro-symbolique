@@ -22,7 +22,10 @@ def main():
 
     # Initialize platform
     print("\n1. Initializing NeSy Platform...")
-    platform = NeSyPlatform.from_config("../../configs/minimal.yaml")
+    import os
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    config_path = os.path.join(project_root, "configs", "minimal.yaml")
+    platform = NeSyPlatform.from_config(config_path)
     print(f"   ✓ Platform initialized")
     print(f"   ✓ UMA device: {platform.uma.device}")
 

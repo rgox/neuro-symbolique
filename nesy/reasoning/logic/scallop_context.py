@@ -26,21 +26,20 @@ Example:
 from typing import List, Tuple, Any, Optional, Dict
 import logging
 
-# Try to import scallopy, provide fallback if not available
+from .minalog import MinalogContext
+
+# Try Scallop, fall back to Minalog (pure Python Datalog)
 try:
     import scallopy
     SCALLOP_AVAILABLE = True
 except ImportError:
+    scallopy = None
     SCALLOP_AVAILABLE = False
-    logging.warning(
-        "Scallop not available. Install with: pip install scallop-lang\n"
-        "Falling back to mock implementation."
-    )
 
 
 class ScallopContext:
     """
-    Wrapper for Scallop context with easy fact/rule management.
+    Wrapper for Scallop context (or Minalog fallback).
     
     Provides a clean API for adding relations, facts, rules, and querying
     the logical knowledge base.
@@ -48,7 +47,7 @@ class ScallopContext:
     Attributes:
         provenance: Provenance semantics (difftopkproofs, minmaxprob, etc.)
         k: Number of proofs for top-k provenance
-        ctx: Underlying Scallop context (if available)
+        ctx: Underlying context (Scallop or Minalog)
         facts: List of all facts added
         rules: List of all rules added
     
@@ -57,16 +56,6 @@ class ScallopContext:
         >>> 
         >>> # Define schema
         >>> ctx.add_relation("object", ["String", "String"])
-        >>> 
-        >>> # Add facts
-        >>> ctx.add_fact("object", "cup1", "cup")
-        >>> ctx.add_fact("object", "table1", "table")
-        >>> 
-        >>> # Add rules
-        >>> ctx.add_rule('same_room(X, Y) :- in(X, R), in(Y, R)')
-        >>> 
-        >>> # Query
-        >>> results = ctx.query("same_room")
     """
     
     def __init__(
@@ -76,7 +65,7 @@ class ScallopContext:
         train_k: Optional[int] = None
     ):
         """
-        Initialize Scallop context.
+        Initialize context.
         
         Args:
             provenance: Provenance semantics
@@ -95,12 +84,15 @@ class ScallopContext:
         self.rules: List[str] = []
         self.relations: Dict[str, List[str]] = {}
         
-        # Create Scallop context if available
-        if SCALLOP_AVAILABLE:
+        # Create Scallop context or fallback
+        if scallopy is not None:
             self.ctx = scallopy.ScallopContext(provenance=provenance, k=k)
         else:
-            self.ctx = None
-            logging.warning("Using mock Scallop context (no inference)")
+            logging.warning(
+                "Scallop not found. Using Minalog (pure Python Datalog fallback). "
+                "Performance may be slower and advanced features limited."
+            )
+            self.ctx = MinalogContext(provenance=provenance, k=k)
     
     def add_relation(self, name: str, types: List[str]) -> None:
         """
@@ -118,9 +110,7 @@ class ScallopContext:
             >>> # similar(obj1: String, obj2: String, score: f32)
         """
         self.relations[name] = types
-        
-        if self.ctx:
-            self.ctx.add_relation(name, tuple(types))
+        self.ctx.add_relation(name, tuple(types))
     
     def add_fact(self, relation: str, *args) -> None:
         """
@@ -136,9 +126,7 @@ class ScallopContext:
             >>> ctx.add_fact("similar", "cup1", "cup2", 0.87)
         """
         self.facts.append((relation, args))
-        
-        if self.ctx:
-            self.ctx.add_facts(relation, [args])
+        self.ctx.add_facts(relation, [args])
     
     def add_facts_batch(self, relation: str, facts: List[Tuple]) -> None:
         """
@@ -158,8 +146,7 @@ class ScallopContext:
         for fact in facts:
             self.facts.append((relation, fact))
         
-        if self.ctx:
-            self.ctx.add_facts(relation, facts)
+        self.ctx.add_facts(relation, facts)
     
     def add_rule(self, rule: str) -> None:
         """
@@ -180,9 +167,7 @@ class ScallopContext:
             >>> ctx.add_rule('same_type(X, Y) :- similar(X, Y, S), S >= 0.8')
         """
         self.rules.append(rule)
-        
-        if self.ctx:
-            self.ctx.add_rule(rule)
+        self.ctx.add_rule(rule)
     
     def add_rules_batch(self, rules: List[str]) -> None:
         """
@@ -208,10 +193,6 @@ class ScallopContext:
             >>> ctx.query("path")
             >>> # → [("cup1", "kitchen"), ("table1", "kitchen"), ...]
         """
-        if not self.ctx:
-            # Mock: return facts for this relation
-            return [fact for rel, fact in self.facts if rel == relation]
-        
         # Run inference
         self.ctx.run()
         
@@ -227,10 +208,6 @@ class ScallopContext:
         Returns:
             List of (tuple, provenance) pairs
         """
-        if not self.ctx:
-            # Mock: no provenance
-            return [(fact, 1.0) for rel, fact in self.facts if rel == relation]
-        
         self.ctx.run()
         
         # Get results with tags (provenance)
@@ -240,46 +217,41 @@ class ScallopContext:
         
         return results
     
+    def _create_context(self):
+        """Create a fresh underlying context (Scallop or Minalog)."""
+        if scallopy is not None:
+            return scallopy.ScallopContext(provenance=self.provenance, k=self.k)
+        return MinalogContext(provenance=self.provenance, k=self.k)
+
     def clear_facts(self) -> None:
         """
         Clear all facts but keep rules and schema.
-        
+
         Useful for incremental updates.
         """
         self.facts = []
-        
-        if self.ctx:
-            # Recreate context with same settings
-            old_rules = self.rules.copy()
-            old_relations = self.relations.copy()
-            
-            self.ctx = scallopy.ScallopContext(
-                provenance=self.provenance,
-                k=self.k
-            ) if SCALLOP_AVAILABLE else None
-            
-            # Re-add relations
-            for name, types in old_relations.items():
-                self.add_relation(name, types)
-            
-            # Re-add rules
-            for rule in old_rules:
-                if self.ctx:
-                    self.ctx.add_rule(rule)
-    
+
+        # Recreate context with same settings
+        old_rules = self.rules.copy()
+        old_relations = self.relations.copy()
+
+        self.ctx = self._create_context()
+
+        # Re-add relations
+        for name, types in old_relations.items():
+            self.add_relation(name, types)
+
+        # Re-add rules
+        for rule in old_rules:
+            self.ctx.add_rule(rule)
+
     def clear_all(self) -> None:
         """Clear everything (facts, rules, relations)."""
         self.facts = []
         self.rules = []
         self.relations = {}
-        
-        if SCALLOP_AVAILABLE:
-            self.ctx = scallopy.ScallopContext(
-                provenance=self.provenance,
-                k=self.k
-            )
-        else:
-            self.ctx = None
+
+        self.ctx = self._create_context()
     
     def get_num_facts(self) -> int:
         """Get total number of facts."""

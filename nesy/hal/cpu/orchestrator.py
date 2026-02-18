@@ -182,7 +182,12 @@ class CPUOrchestrator(Device):
 
             if callable(operation):
                 # If it's a function, call it with inputs
-                outputs = operation(**inputs)
+                raw_result = operation(**inputs)
+                # Wrap non-dict results in a standard format
+                if isinstance(raw_result, dict):
+                    outputs = raw_result
+                else:
+                    outputs = {"result": raw_result}
             else:
                 # Generic execution (for MVP, just pass through)
                 outputs = {"result": "CPU fallback execution", "inputs": inputs}

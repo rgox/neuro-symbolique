@@ -38,6 +38,11 @@ ruff>=0.1.0
 # PyTorch Geometric for GNN
 # torch-geometric>=2.4.0
 
+# Computer Vision
+opencv-python>=4.8.0
+ultralytics>=8.0.0
+transformers>=4.30.0
+
 # ROS2 (install separately via apt/source)
 # rclpy (install with ROS2)
 

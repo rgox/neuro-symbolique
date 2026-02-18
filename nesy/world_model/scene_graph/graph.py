@@ -225,7 +225,7 @@ class SceneGraph:
         }
 
         if logger:
-            logger.info("SceneGraph initialized", event_type=EventType.GRAPH)
+            logger.info("SceneGraph initialized")
 
     def add_node(
         self,
@@ -277,14 +277,7 @@ class SceneGraph:
         # Log
         if self.logger:
             self.logger.debug(
-                f"Added node {node.id[:8]} to layer {layer.value}",
-                event_type=EventType.GRAPH,
-                data={
-                    "node_id": node.id,
-                    "layer": layer.value,
-                    "type": node_type.value,
-                    "position": position,
-                },
+                f"Added node {node.id[:8]} to layer {layer.value}"
             )
 
         return node
@@ -336,11 +329,9 @@ class SceneGraph:
         self.stats["total_edges"] += 1
         self.stats["edges_by_relation"][relation.value] += 1
 
-        # Log
         if self.logger:
             self.logger.debug(
-                f"Added edge {src_id[:8]} --[{relation.value}]--> {dst_id[:8]}",
-                event_type=EventType.GRAPH,
+                f"Added edge {src_id[:8]} --[{relation.value}]--> {dst_id[:8]}"
             )
 
         return edge

@@ -49,17 +49,17 @@ class TestAction:
     
     @pytest.fixture
     def move_action(self):
-        """Create a simple move action."""
+        """Create a simple move action with ground (concrete) predicates."""
         return Action(
             name="move",
-            parameters=["from", "to"],
+            parameters=["room1", "room2"],
             preconditions=[
-                Predicate("at", ["from"]),
-                Predicate("connected", ["from", "to"])
+                Predicate("at", ["room1"]),
+                Predicate("connected", ["room1", "room2"])
             ],
             effects=[
-                Predicate("at", ["from"], is_negative=True),
-                Predicate("at", ["to"])
+                Predicate("at", ["room1"], is_negative=True),
+                Predicate("at", ["room2"])
             ]
         )
     

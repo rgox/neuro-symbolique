@@ -68,18 +68,16 @@ class TestYOLODetector:
     
     @pytest.fixture
     def detector(self):
-        """Create YOLO detector (will use mock if ultralytics not installed)."""
-        try:
-            return YOLODetector(model_name="yolov8n")
-        except ImportError:
-            pytest.skip("ultralytics not installed")
-    
+        """Create YOLO detector (will skip if ultralytics not installed)."""
+        pytest.importorskip("ultralytics")
+        return YOLODetector(model_name="yolov8n")
+
     def test_initialization(self, detector):
         """Test detector initialization."""
         assert detector.model_name == "yolov8n"
         assert detector.conf_threshold == 0.25
         assert detector._model is None  # Lazy load
-    
+
     def test_detect_loads_model(self, detector):
         """Test that detect() triggers model loading."""
         image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
@@ -104,11 +102,9 @@ class TestCLIPEmbedder:
     
     @pytest.fixture
     def embedder(self):
-        """Create CLIP embedder (will use mock if transformers not installed)."""
-        try:
-            return CLIPEmbedder(model_name="clip-vit-b32")
-        except ImportError:
-            pytest.skip("transformers not installed")
+        """Create CLIP embedder (will skip if transformers not installed)."""
+        pytest.importorskip("transformers")
+        return CLIPEmbedder(model_name="clip-vit-b32")
     
     def test_initialization(self, embedder):
         """Test embedder initialization."""

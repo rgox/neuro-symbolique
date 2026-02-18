@@ -43,14 +43,14 @@ class FeatureBackend(Enum):
     CLIP = "clip"  # OpenAI CLIP
     RESNET = "resnet"  # ResNet features
     DINOV2 = "dinov2"  # Meta DINOv2
-    MOCK = "mock"  # Mock extractor for testing
+    MOCK = "mock"  # Mock extractor for testing / development
 
 
 @dataclass
 class FeatureVector:
     """
     Extracted feature vector with metadata.
-
+    
     Attributes:
         features: Feature vector as numpy array
         dim: Feature dimensionality
@@ -113,7 +113,7 @@ class FeatureExtractor:
     
     def __init__(
         self,
-        backend: str = "mock",
+        backend: str = "clip",
         model: str = "ViT-B/32",
         device: str = "cpu",
         normalize: bool = True,
@@ -122,7 +122,7 @@ class FeatureExtractor:
         Initialize feature extractor.
         
         Args:
-            backend: Feature backend ("clip", "resnet", "dinov2", "mock")
+            backend: Feature backend ("clip", "resnet", "dinov2")
             model: Model variant (depends on backend)
             device: Device to run on ("cpu", "cuda", etc.)
             normalize: Whether to L2-normalize features
@@ -142,9 +142,9 @@ class FeatureExtractor:
     def _load_model(self):
         """Load feature extraction model."""
         if self.backend == FeatureBackend.MOCK:
-            return MockFeatureModel()
-        
-        elif self.backend == FeatureBackend.CLIP:
+            return None  # No model needed for mock
+
+        if self.backend == FeatureBackend.CLIP:
             if not TORCH_AVAILABLE:
                 raise ImportError("PyTorch required for CLIP backend")
             
@@ -189,8 +189,8 @@ class FeatureExtractor:
         """Get image preprocessing pipeline."""
         if self.backend == FeatureBackend.MOCK:
             return lambda x: x
-        
-        elif self.backend == FeatureBackend.CLIP:
+
+        if self.backend == FeatureBackend.CLIP:
             import clip
             _, preprocess = clip.load(self.model_name, device=self.device)
             return preprocess
@@ -226,8 +226,8 @@ class FeatureExtractor:
     def _get_feature_dim(self) -> int:
         """Get feature dimensionality."""
         if self.backend == FeatureBackend.MOCK:
-            return 512  # Mock dimension
-        elif self.backend == FeatureBackend.CLIP:
+            return 512
+        if self.backend == FeatureBackend.CLIP:
             if "RN50" in self.model_name:
                 return 1024
             elif "RN101" in self.model_name:
@@ -278,7 +278,7 @@ class FeatureExtractor:
         
         # Extract features based on backend
         if self.backend == FeatureBackend.MOCK:
-            features = self._extract_mock(image)
+            features = np.random.randn(self.feature_dim).astype(np.float32)
         elif self.backend == FeatureBackend.CLIP:
             features = self._extract_clip(image)
         elif self.backend == FeatureBackend.RESNET:
@@ -301,10 +301,6 @@ class FeatureExtractor:
             feature_vec = feature_vec.normalize()
         
         return feature_vec
-    
-    def _extract_mock(self, image: np.ndarray) -> np.ndarray:
-        """Mock feature extraction - returns random features."""
-        return np.random.randn(self.feature_dim).astype(np.float32)
     
     def _extract_clip(self, image: np.ndarray) -> np.ndarray:
         """Extract CLIP features."""
@@ -374,8 +370,3 @@ class FeatureExtractor:
             List of FeatureVector objects
         """
         return [self.extract(img) for img in images]
-
-
-class MockFeatureModel:
-    """Mock feature model for testing."""
-    pass

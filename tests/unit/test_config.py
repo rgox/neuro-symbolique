@@ -235,10 +235,12 @@ class TestNeSyConfig:
     def test_perception_config_defaults(self):
         """Test Perception configuration defaults."""
         config = NeSyConfig()
-        assert config.perception.object_detection["model"] == "yolov8"
+        assert config.perception.object_detection["model"] == "yolov8n"
         assert config.perception.object_detection["confidence_threshold"] == 0.5
-        assert config.perception.feature_extraction["model"] == "clip"
-        assert config.perception.feature_extraction["embedding_dim"] == 512
+        assert config.perception.object_detection["backend"] == "mock"
+        assert config.perception.feature_extraction["model"] == "ViT-B/32"
+        assert config.perception.feature_extraction["feature_dim"] == 512
+        assert config.perception.feature_extraction["backend"] == "mock"
 
     def test_tools_config_defaults(self):
         """Test Tools configuration defaults."""

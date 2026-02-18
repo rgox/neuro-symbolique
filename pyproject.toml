@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nesy"
-version = "0.1.0"
+version = "1.0.0"
 description = "Universal Neuro-Symbolic AI Platform"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,6 +38,9 @@ dependencies = [
     "scipy>=1.11.0",
     "rerun-sdk>=0.15.0",
     "matplotlib>=3.7.0",
+    "opencv-python>=4.8.0",
+    "ultralytics>=8.0.0",
+    "transformers>=4.30.0",
 ]
 
 [project.optional-dependencies]

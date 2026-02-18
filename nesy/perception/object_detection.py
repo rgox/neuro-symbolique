@@ -48,7 +48,22 @@ class DetectionBackend(Enum):
     """Supported detection backends."""
     YOLO = "yolo"  # YOLOv8 (ultralytics)
     FASTER_RCNN = "faster_rcnn"  # Torchvision Faster R-CNN
-    MOCK = "mock"  # Mock detector for testing
+    MOCK = "mock"  # Mock detector for testing / development
+
+
+# COCO class names (80 classes) - shared constant for all backends
+COCO_NAMES = [
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+    "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+    "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+    "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+    "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+    "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+    "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
+    "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+]
 
 
 @dataclass
@@ -129,7 +144,7 @@ class ObjectDetector:
     
     def __init__(
         self,
-        backend: str = "mock",
+        backend: str = "yolo",
         model: str = "yolov8n",
         confidence_threshold: float = 0.5,
         nms_threshold: float = 0.4,
@@ -140,7 +155,7 @@ class ObjectDetector:
         Initialize object detector.
         
         Args:
-            backend: Detection backend ("yolo", "faster_rcnn", "mock")
+            backend: Detection backend ("yolo", "faster_rcnn")
             model: Model variant (e.g., "yolov8n", "fasterrcnn_resnet50_fpn")
             confidence_threshold: Minimum confidence for detections [0, 1]
             nms_threshold: NMS IoU threshold [0, 1]
@@ -153,20 +168,19 @@ class ObjectDetector:
         self.nms_threshold = nms_threshold
         self.device = device
         self.class_filter = set(class_filter) if class_filter else None
-        
-        # Load model
-        self.model = self._load_model()
-        
+
         # COCO class names (default for most models)
         self.class_names = self._get_class_names()
+
+        # Load model (mock needs no loading)
+        self.model = self._load_model()
     
     def _load_model(self):
         """Load detection model based on backend."""
         if self.backend == DetectionBackend.MOCK:
-            # Mock model for testing without dependencies
-            return MockDetectionModel()
-        
-        elif self.backend == DetectionBackend.YOLO:
+            return None  # No model needed for mock
+
+        if self.backend == DetectionBackend.YOLO:
             if not TORCH_AVAILABLE:
                 raise ImportError("PyTorch required for YOLO backend")
             
@@ -199,20 +213,7 @@ class ObjectDetector:
     
     def _get_class_names(self) -> List[str]:
         """Get class names for the model."""
-        # COCO class names (80 classes)
-        coco_names = [
-            "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-            "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-            "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
-            "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
-            "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
-            "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-            "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
-            "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
-            "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
-        ]
-        return coco_names
+        return COCO_NAMES
     
     def detect(
         self,
@@ -237,30 +238,6 @@ class ObjectDetector:
             return self._detect_faster_rcnn(image, return_embeddings)
         else:
             raise ValueError(f"Detection not implemented for backend: {self.backend}")
-    
-    def _detect_mock(self, image: np.ndarray) -> List[Detection]:
-        """Mock detection for testing."""
-        h, w = image.shape[:2]
-        
-        # Return fake detections
-        detections = [
-            Detection(
-                class_id=56,  # chair
-                class_name="chair",
-                confidence=0.95,
-                bbox=(100, 100, 300, 400),
-                image_size=(w, h),
-            ),
-            Detection(
-                class_id=41,  # cup
-                class_name="cup",
-                confidence=0.88,
-                bbox=(350, 150, 450, 250),
-                image_size=(w, h),
-            ),
-        ]
-        
-        return detections
     
     def _detect_yolo(self, image: np.ndarray, return_embeddings: bool) -> List[Detection]:
         """Detect using YOLO backend."""
@@ -368,6 +345,23 @@ class ObjectDetector:
         
         return keep
     
+    def _detect_mock(self, image: np.ndarray) -> List[Detection]:
+        """Mock detection for testing — returns deterministic fake detections."""
+        h, w = image.shape[:2]
+        detections = [
+            Detection(
+                class_id=56, class_name="chair", confidence=0.95,
+                bbox=(100, 100, 300, 400), image_size=(w, h),
+            ),
+            Detection(
+                class_id=41, class_name="cup", confidence=0.88,
+                bbox=(350, 150, 450, 250), image_size=(w, h),
+            ),
+        ]
+        if self.class_filter:
+            detections = [d for d in detections if d.class_name in self.class_filter]
+        return [d for d in detections if d.confidence >= self.confidence_threshold]
+
     @staticmethod
     def _compute_iou(bbox1: tuple, bbox2: tuple) -> float:
         """Compute IoU (Intersection over Union) between two bounding boxes."""
@@ -391,11 +385,3 @@ class ObjectDetector:
         union_area = area1 + area2 - inter_area
         
         return inter_area / union_area if union_area > 0 else 0.0
-
-
-class MockDetectionModel:
-    """Mock detection model for testing without dependencies."""
-    
-    def __call__(self, image, verbose=False):
-        """Mock detection - returns empty results."""
-        return []

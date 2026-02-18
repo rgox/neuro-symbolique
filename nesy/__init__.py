@@ -2,16 +2,19 @@
 NeSy: Universal Neuro-Symbolic AI Platform
 
 This is the main entry point for the NeSy platform. It provides a high-level API
-for building neuro-symbolic AI systems.
+for building neuro-symbolic AI systems with full backend agnosticism.
+
+All components (perception, reasoning, LLM, agents) are created via the
+Registry plugin system and can be swapped by changing configuration.
 
 Example:
     >>> from nesy import NeSyPlatform
-    >>> platform = NeSyPlatform.from_config('configs/minimal.yaml')
+    >>> platform = NeSyPlatform()
     >>> platform.perceive(image)
     >>> results = platform.reason("find all red cups")
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "NeSy Platform Contributors"
 __all__ = [
     "NeSyPlatform",
@@ -19,6 +22,7 @@ __all__ = [
     "NeSyConfig",
     "load_config",
     "get_logger",
+    "Registry",
 ]
 
 # Core infrastructure
@@ -30,9 +34,11 @@ from nesy.core.config import (
     validate_config,
 )
 from nesy.core.telemetry import get_logger, TelemetryLogger, EventType
+from nesy.core.registry import Registry, register_plugin
+from nesy.core.factory import ComponentFactory
 
-# Platform class (will be implemented in next steps)
-from typing import Optional, Any, Dict, Union
+# Platform class
+from typing import Optional, Any, Dict, Union, List
 from pathlib import Path
 
 
@@ -41,19 +47,18 @@ class NeSyPlatform:
     High-level API for the NeSy platform.
 
     This is the main class that users interact with. It orchestrates all
-    subsystems (HAL, World Model, Reasoning, etc.) and provides a simple
-    interface for common tasks.
+    subsystems (HAL, Perception, Reasoning, Agents, etc.) using the
+    Registry for backend-agnostic component creation.
 
     Example:
-        >>> # Minimal usage
-        >>> platform = NeSyPlatform.from_config('configs/minimal.yaml')
-        >>> platform.perceive(image)
-        >>> results = platform.reason("find all cups")
+        >>> # Default (mock backends)
+        >>> platform = NeSyPlatform()
         >>>
-        >>> # Advanced usage
+        >>> # With real backends
+        >>> from nesy.core.config import NeSyConfig
+        >>> config = NeSyConfig()
+        >>> config.perception.object_detection["backend"] = "yolo"
         >>> platform = NeSyPlatform(config)
-        >>> platform.hal.npu.execute(model, input)
-        >>> platform.world_model.scene_graph.query(...)
     """
 
     def __init__(self, config: Optional[NeSyConfig] = None):
@@ -80,12 +85,17 @@ class NeSyPlatform:
         self.logger.info("Initializing Hardware Abstraction Layer")
         self.hal = self._initialize_hal()
 
-        # Initialize subsystems (placeholders for post-HAL implementation)
-        self.world_model = None  # Will be initialized in World Model implementation
-        self.reasoning = None  # Will be initialized in Reasoning implementation
-        self.middleware = None  # Will be initialized in Middleware implementation
-        self.perception = None  # Will be initialized in Perception implementation
-        self.tools = None  # Will be initialized in Tools implementation
+        # Initialize subsystems via Registry (lazy)
+        self._perception_detector = None
+        self._perception_extractor = None
+        self._reasoning_engine = None
+        self._llm_provider = None
+        self._agent = None
+        self._message_bus = None
+
+        # World model (direct, not pluggable — it's our core data structure)
+        self.world_model = None
+        self.tools = None
 
         self.logger.info("NeSy platform initialized successfully")
 
@@ -138,6 +148,72 @@ class NeSyPlatform:
 
         return HAL(npu, spu, cpu, device_pool)
 
+    # --- Lazy component accessors via Registry ---
+
+    @property
+    def detector(self):
+        """Object detector (lazy, created from config via Registry)."""
+        if self._perception_detector is None:
+            from nesy.perception.base import ObjectDetectorBase
+            # Ensure plugins are loaded
+            import nesy.perception.detectors  # noqa: F401
+            config = dict(self.config.perception.object_detection)
+            backend = config.pop("backend", "mock")
+            self._perception_detector = Registry.create(
+                ObjectDetectorBase, backend, **config
+            )
+        return self._perception_detector
+
+    @property
+    def extractor(self):
+        """Feature extractor (lazy, created from config via Registry)."""
+        if self._perception_extractor is None:
+            from nesy.perception.base import FeatureExtractorBase
+            import nesy.perception.extractors  # noqa: F401
+            config = dict(self.config.perception.feature_extraction)
+            backend = config.pop("backend", "mock")
+            self._perception_extractor = Registry.create(
+                FeatureExtractorBase, backend, **config
+            )
+        return self._perception_extractor
+
+    @property
+    def logic_engine(self):
+        """Logic engine (lazy, created from config via Registry)."""
+        if self._reasoning_engine is None:
+            from nesy.reasoning.base import LogicEngineBase
+            import nesy.reasoning.engines  # noqa: F401
+            logic_config = self.config.reasoning.logic
+            backend = logic_config.get("engine", "scallop")
+            self._reasoning_engine = Registry.create(
+                LogicEngineBase, backend,
+                provenance=logic_config.get("provenance", "difftopkproofs"),
+                k=logic_config.get("k", 3),
+            )
+        return self._reasoning_engine
+
+    @property
+    def llm(self):
+        """LLM provider (lazy, created from config via Registry)."""
+        if self._llm_provider is None:
+            from nesy.reasoning.llm.base import LLMProviderBase
+            import nesy.reasoning.llm.providers  # noqa: F401
+            llm_config = self.config.reasoning.llm
+            provider = llm_config.get("provider", "mock")
+            self._llm_provider = Registry.create(
+                LLMProviderBase, provider,
+                model=llm_config.get("model", ""),
+            )
+        return self._llm_provider
+
+    @property
+    def message_bus(self):
+        """Message bus (lazy)."""
+        if self._message_bus is None:
+            from nesy.middleware.bus import LocalMessageBus
+            self._message_bus = LocalMessageBus()
+        return self._message_bus
+
     @classmethod
     def from_config(cls, config_path: Union[str, Path]) -> "NeSyPlatform":
         """
@@ -148,9 +224,6 @@ class NeSyPlatform:
 
         Returns:
             NeSyPlatform instance
-
-        Example:
-            >>> platform = NeSyPlatform.from_config('configs/minimal.yaml')
         """
         config = load_config(config_path)
         return cls(config)
@@ -159,42 +232,58 @@ class NeSyPlatform:
         """
         Run perception pipeline on sensor data.
 
+        Uses the configured detector and extractor backends.
+
         Args:
-            sensor_data: Raw sensor data (image, point cloud, etc.)
+            sensor_data: Raw sensor data (image as numpy array)
 
         Returns:
-            Perception results (detected objects, features, etc.)
-
-        Note:
-            This is a placeholder. Full implementation in Phase 2.
+            Perception results (detected objects, features)
         """
-        self.logger.warning("Perception module not yet implemented")
-        return {}
+        import numpy as np
+        if not isinstance(sensor_data, np.ndarray):
+            self.logger.warning("sensor_data should be a numpy array")
+            return {}
+
+        detections = self.detector.detect(sensor_data)
+        features = self.extractor.extract(sensor_data)
+
+        return {
+            "detections": [d.to_dict() for d in detections],
+            "features": {
+                "dim": features.dim,
+                "model": features.model,
+            },
+            "num_objects": len(detections),
+        }
 
     def reason(self, query: str) -> Any:
         """
-        Execute reasoning query.
+        Execute reasoning query via the logic engine.
 
         Args:
-            query: Reasoning query (natural language or logic syntax)
+            query: Relation name to query
 
         Returns:
-            Query results
-
-        Note:
-            This is a placeholder. Full implementation in Phase 2.
+            Query results (list of tuples)
         """
-        self.logger.warning("Reasoning module not yet implemented")
-        return None
+        return self.logic_engine.query(query)
 
     def visualize(self) -> None:
-        """
-        Open visualization interface.
-
-        Note:
-            This is a placeholder. Full implementation in Phase 2.
-        """
+        """Open visualization interface."""
         self.logger.warning("Visualization not yet implemented")
+
+    def get_registry_summary(self) -> Dict[str, List[str]]:
+        """
+        Get a summary of all registered plugins.
+
+        Returns:
+            Dict mapping interface names to lists of plugin names.
+        """
+        return {
+            iface.__name__: Registry.list_plugins(iface)
+            for iface in Registry.get_all_interfaces()
+        }
 
     def shutdown(self) -> None:
         """Clean shutdown of the platform."""
@@ -222,8 +311,5 @@ def quick_start(config_path: str = "configs/minimal.yaml") -> NeSyPlatform:
 
     Returns:
         Initialized NeSyPlatform
-
-    Example:
-        >>> platform = quick_start()
     """
     return NeSyPlatform.from_config(config_path)
